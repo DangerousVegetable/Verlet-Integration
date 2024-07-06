@@ -30,6 +30,9 @@ struct Simulation {
 #[derive(Debug, Clone)]
 enum Message {
     ParticlesNumberChanged(u32),
+    CameraFovChanged(f32),
+    CameraXUpdated(f32),
+    CameraYUpdated(f32),
     Tick(Instant),
 }
 
@@ -46,13 +49,22 @@ impl Simulation {
             Message::ParticlesNumberChanged(amount) => {
                 self.scene.change_number(amount);
             }
+            Message::CameraFovChanged(fov) => {
+                self.scene.camera.fov = fov;
+            }
+            Message::CameraXUpdated(x) => {
+                self.scene.camera.pos.x = x;
+            }
+            Message::CameraYUpdated(y) => {
+                self.scene.camera.pos.y = y;
+            }
             Message::Tick(_time) => {
             }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let top_controls = row![
+        let number_controls = row![
             control(
                 "Number",
                 slider(
@@ -65,7 +77,46 @@ impl Simulation {
         ]
         .spacing(40);
 
-        let controls = column![top_controls,]
+        let fov_controls = row![
+            control(
+                "FOV",
+                slider(
+                    1. ..=100.,
+                    self.scene.camera.fov,
+                    Message::CameraFovChanged
+                )
+                .width(100)
+            ),
+        ]
+        .spacing(40);
+        let x_controls = row![
+            control(
+                "X",
+                slider(
+                    -50. ..=50.,
+                    self.scene.camera.pos.x,
+                    Message::CameraXUpdated
+                )
+                .width(300)
+            ),
+        ]
+        .spacing(40);
+        let y_controls = row![
+            control(
+                "Y",
+                slider(
+                    -50. ..=50.,
+                    self.scene.camera.pos.y,
+                    Message::CameraYUpdated
+                )
+                .width(300)
+            ),
+        ]
+        .spacing(40);
+
+        let camera_controls = row![fov_controls, x_controls, y_controls]
+            .spacing(10);
+        let controls = column![number_controls, camera_controls]
             .spacing(10)
             .padding(20)
             .align_items(Alignment::Center);

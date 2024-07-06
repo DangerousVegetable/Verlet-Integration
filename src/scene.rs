@@ -4,14 +4,17 @@ use std::iter;
 use glam::Vec2;
 use iced::mouse;
 use iced::time::Duration;
-use iced::widget::shader::wgpu;
-use iced::widget::shader::{self};
-use iced::{Color, Rectangle};
+use iced::widget::shader::{self, wgpu};
+use iced::Rectangle;
 use rand::Rng;
 
 mod pipeline;
 use pipeline::particle::{self};
 use pipeline::Pipeline;
+use pipeline::Uniforms;
+
+mod camera;
+pub use camera::Camera;
 
 use crate::particle::Particle;
 
@@ -20,11 +23,12 @@ pub const MAX: u32 = 1000000;
 #[derive(Clone)]
 pub struct Scene {
     pub particles: Vec<Particle>,
+    pub camera: Camera,
 }
 
 impl Scene {
     pub fn new() -> Self {
-        let mut scene = Self { particles: vec![] };
+        let mut scene = Self { particles: vec![], camera: Camera::default()};
 
         scene.change_number(10000);
 
@@ -43,7 +47,7 @@ impl Scene {
                 self.particles.extend(iter::from_fn(|| {
                     if particles < particles_2_spawn {
                         particles += 1;
-                        Some(Particle::new(0.01, rnd_origin()))
+                        Some(Particle::new(rand::thread_rng().gen_range(0.1..0.5), rnd_origin()))
                     } else {
                         None
                     }
@@ -72,27 +76,31 @@ impl<Message> shader::Program<Message> for Scene {
     ) -> Self::Primitive {
         Primitive::new(
             &self.particles,
+            &self.camera,
             bounds,
         )
     }
 }
 
-/// A collection of `Cube`s that can be rendered.
+/// A collection of `Particles`s that can be rendered.
 #[derive(Debug)]
 pub struct Primitive {
     particles: Vec<particle::Raw>,
+    uniforms: Uniforms,
 }
 
 impl Primitive {
     pub fn new(
-        cubes: &[Particle],
+        particles: &[Particle],
+        camera: &Camera,
         bounds: Rectangle,
     ) -> Self {
         Self {
-            particles: cubes
+            particles: particles
                 .iter()
                 .map(particle::Raw::from_particle)
                 .collect::<Vec<particle::Raw>>(),
+            uniforms: Uniforms::new(camera, bounds)
         }
     }
 }
@@ -124,6 +132,7 @@ impl shader::Primitive for Primitive {
             device,
             queue,
             target_size,
+            &self.uniforms,
             self.particles.len(),
             &self.particles,
         );
@@ -152,7 +161,7 @@ impl shader::Primitive for Primitive {
 
 fn rnd_origin() -> Vec2 {
     Vec2::new(
-        rand::thread_rng().gen_range(-4.0..4.0),
-        rand::thread_rng().gen_range(-4.0..4.0),
+        rand::thread_rng().gen_range(-25.0..25.0),
+        rand::thread_rng().gen_range(-25.0..25.0),
     )
 }

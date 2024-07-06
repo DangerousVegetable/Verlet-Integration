@@ -5,6 +5,8 @@ mod buffer;
 use buffer::Buffer;
 mod vertex;
 use vertex::Vertex;
+mod uniforms;
+pub use uniforms::Uniforms;
 use crate::texture;
 
 pub mod particle;
@@ -17,6 +19,8 @@ pub struct Pipeline {
     particles: Buffer,
     // particle index buffer
     indices: wgpu::Buffer,
+    // uniforms buffer
+    uniforms: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
 }
 
@@ -50,17 +54,36 @@ impl Pipeline {
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-        let diffuse_bytes = include_bytes!("../../textures/particle-red.png");
+        // uniforms for all particles (camera)
+        let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("particles uniform buffer"),
+            size: std::mem::size_of::<Uniforms>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let diffuse_bytes = include_bytes!("../../textures/particle-xd.png");
         let diffuse_texture =
-        texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "particle-red.png").unwrap();
+        texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "particle-xd.png").unwrap();
         
         let uniform_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("particles uniform bind group layout"),
                 entries: &[
-                    // particle texture
+                    // uniforms
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    // particle texture
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Texture {
                             sample_type: wgpu::TextureSampleType::Float {
@@ -73,7 +96,7 @@ impl Pipeline {
                     },
                     // texture sampler
                     wgpu::BindGroupLayoutEntry {
-                        binding: 1,
+                        binding: 2,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Sampler(
                             wgpu::SamplerBindingType::Filtering,
@@ -90,10 +113,14 @@ impl Pipeline {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                        resource: uniforms.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
+                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
                         resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
                     },
                 ],
@@ -158,6 +185,7 @@ impl Pipeline {
             vertices,
             particles: particles_buffer,
             indices,
+            uniforms,
             uniform_bind_group
         }
     }
@@ -167,14 +195,18 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         target_size: Size<u32>,
+        uniforms: &Uniforms,
         num_particles: usize,
         particles: &[particle::Raw],
     ) {
-        //resize cubes vertex buffer if cubes amount changed
+        // update uniforms
+        queue.write_buffer(&self.uniforms, 0, bytemuck::bytes_of(uniforms));
+
+        // resize particle vertex buffer if particles number changed
         let new_size = num_particles * std::mem::size_of::<particle::Raw>();
         self.particles.resize(device, new_size as u64);
 
-        //always write new cube data since they are constantly rotating
+        // always write new particle data since they are constantly moving
         queue.write_buffer(&self.particles.raw, 0, bytemuck::cast_slice(particles));
     }
 
