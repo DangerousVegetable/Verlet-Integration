@@ -29,7 +29,7 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        target_size: Size<u32>,
+        _target_size: Size<u32>,
     ) -> Self {
         //vertices of one cube
         let vertices =
@@ -194,7 +194,7 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        target_size: Size<u32>,
+        _target_size: Size<u32>,
         uniforms: &Uniforms,
         num_particles: usize,
         particles: &[particle::Raw],

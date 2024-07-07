@@ -1,6 +1,6 @@
 use iced::widget::shader::wgpu;
 
-use glam::{Vec2, vec2};
+use glam::vec2;
 
 use super::vertex::Vertex;
 use crate::particle::Particle;

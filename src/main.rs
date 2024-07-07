@@ -5,10 +5,9 @@ mod texture;
 use scene::Scene;
 
 use iced::time::Instant;
-use iced::widget::shader::wgpu;
-use iced::widget::{checkbox, column, row, shader, slider, text};
+use iced::widget::{column, row, shader, slider, text};
 use iced::window;
-use iced::{Alignment, Color, Element, Length, Subscription};
+use iced::{Alignment, Element, Length, Subscription};
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -124,7 +123,9 @@ impl Simulation {
         let shader =
             shader(&self.scene).width(Length::Fill).height(Length::Fill);
 
-        column![shader, controls].align_items(Alignment::Center).into()
+        column![shader, controls]
+        .align_items(Alignment::Center)
+        .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

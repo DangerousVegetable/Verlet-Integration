@@ -3,7 +3,6 @@ use std::iter;
 
 use glam::Vec2;
 use iced::mouse;
-use iced::time::Duration;
 use iced::widget::shader::{self, wgpu};
 use iced::Rectangle;
 use rand::Rng;
@@ -142,7 +141,7 @@ impl shader::Primitive for Primitive {
         &self,
         storage: &shader::Storage,
         target: &wgpu::TextureView,
-        target_size: iced::Size<u32>,
+        _target_size: iced::Size<u32>,
         viewport: Rectangle<u32>,
         encoder: &mut wgpu::CommandEncoder,
     ) {
