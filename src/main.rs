@@ -1,13 +1,19 @@
 mod scene;
 mod particle;
 mod texture;
+mod solver;
+
+use core::num;
 
 use scene::Scene;
 
 use iced::time::Instant;
 use iced::widget::{column, row, shader, slider, text};
-use iced::window;
+use iced::{window, Settings};
+use iced::time;
 use iced::{Alignment, Element, Length, Subscription};
+
+use glam::{Vec2, vec2};
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -39,7 +45,7 @@ impl Simulation {
     fn new() -> Self {
         Self {
             start: Instant::now(),
-            scene: Scene::new(),
+            scene: Scene::new(10, solver::Constraint::Box(vec2(-20., -2.5), vec2(20., 10.))),
         }
     }
 
@@ -58,20 +64,22 @@ impl Simulation {
                 self.scene.camera.pos.y = y;
             }
             Message::Tick(_time) => {
+                self.scene.update(0.1);
             }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
+        let number_str = self.scene.particles.len().to_string();
         let number_controls = row![
             control(
-                "Number",
+                &number_str,
                 slider(
                     1..=scene::MAX,
                     self.scene.particles.len() as u32,
                     Message::ParticlesNumberChanged
                 )
-                .width(100)
+                .width(500)
             ),
         ]
         .spacing(40);
@@ -129,7 +137,8 @@ impl Simulation {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        window::frames().map(Message::Tick)
+        time::every(time::Duration::from_millis(3))
+            .map(Message::Tick)
     }
 }
 
@@ -140,7 +149,7 @@ impl Default for Simulation {
 }
 
 fn control<'a>(
-    label: &'static str,
+    label: &str,
     control: impl Into<Element<'a, Message>>,
 ) -> Element<'a, Message> {
     row![text(label), control.into()].spacing(10).into()

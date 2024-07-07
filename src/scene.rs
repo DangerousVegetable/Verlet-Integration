@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::iter;
 
-use glam::Vec2;
+use glam::{Vec2, vec2};
 use iced::mouse;
 use iced::widget::shader::{self, wgpu};
 use iced::Rectangle;
@@ -16,22 +16,32 @@ mod camera;
 pub use camera::Camera;
 
 use crate::particle::Particle;
+use crate::solver::{self, Solver};
 
-pub const MAX: u32 = 1000000;
+pub const MAX: u32 = 10000;
+pub const PARTICLE_SIZE: f32 = 0.1;
 
 #[derive(Clone)]
 pub struct Scene {
     pub particles: Vec<Particle>,
     pub camera: Camera,
+    pub solver: Solver,
 }
 
 impl Scene {
-    pub fn new() -> Self {
-        let mut scene = Self { particles: vec![], camera: Camera::default()};
+    pub fn new(number: u32, constraint: solver::Constraint) -> Self {
+        let mut scene = Self { 
+            particles: vec![], 
+            camera: Camera::default(), 
+            solver: Solver::new(constraint, 2.*PARTICLE_SIZE)};
 
-        scene.change_number(10000);
+        scene.change_number(number);
 
         scene
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        self.solver.solve(&mut self.particles, dt);
     }
 
     pub fn change_number(&mut self, number: u32) {
@@ -42,15 +52,17 @@ impl Scene {
                 // spawn
                 let particles_2_spawn = (number - curr_particles) as usize;
 
+                let bounds = self.solver.constraint.bounds();
                 let mut particles = 0;
                 self.particles.extend(iter::from_fn(|| {
                     if particles < particles_2_spawn {
                         particles += 1;
-                        Some(Particle::new(rand::thread_rng().gen_range(0.1..0.5), rnd_origin()))
+                        Some(Particle::new(PARTICLE_SIZE, rnd_origin(bounds)))
                     } else {
                         None
                     }
                 }));
+                //self.particles.push(Particle::new(10., vec2(0., 30.)));
             }
             Ordering::Less => {
                 // chop
@@ -61,6 +73,13 @@ impl Scene {
             Ordering::Equal => {}
         }
     }
+}
+
+fn rnd_origin(bounds: (Vec2, Vec2)) -> Vec2 {
+    Vec2::new(
+        rand::thread_rng().gen_range(bounds.0.x..bounds.1.x),
+        rand::thread_rng().gen_range(bounds.0.y..bounds.1.y),
+    )
 }
 
 impl<Message> shader::Program<Message> for Scene {
@@ -158,9 +177,4 @@ impl shader::Primitive for Primitive {
     }
 }
 
-fn rnd_origin() -> Vec2 {
-    Vec2::new(
-        rand::thread_rng().gen_range(-25.0..25.0),
-        rand::thread_rng().gen_range(-25.0..25.0),
-    )
-}
+

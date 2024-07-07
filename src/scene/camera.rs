@@ -11,7 +11,7 @@ impl Default for Camera {
     fn default() -> Self {
         Self {
             pos: vec2(0., 0.),
-            fov: 50.,
+            fov: 25.,
         }
     }
 }

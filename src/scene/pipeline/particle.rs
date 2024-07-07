@@ -32,7 +32,7 @@ impl Raw {
 impl Raw {
     pub fn from_particle(particle: &Particle) -> Raw {
         Raw {
-            size: particle.size,
+            size: particle.radius,
             pos: particle.pos,
         }
     }
@@ -40,19 +40,19 @@ impl Raw {
     pub fn vertices() -> [Vertex; 4] {
         [
             Vertex {
-                pos: vec2(-0.5, 0.5),
+                pos: vec2(-1.0, 1.0),
                 uv: vec2(0.0, 0.0),
             },
             Vertex {
-                pos: vec2(-0.5, -0.5),
+                pos: vec2(-1.0, -1.0),
                 uv: vec2(0.0, 1.0)
             },
             Vertex {
-                pos: vec2(0.5, -0.5),
+                pos: vec2(1.0, -1.0),
                 uv: vec2(1.0, 1.0),
             },
             Vertex {
-                pos: vec2(0.5, 0.5),
+                pos: vec2(1.0, 1.0),
                 uv: vec2(1.0, 0.0),
             },
         ]
