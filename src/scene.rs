@@ -16,7 +16,7 @@ mod camera;
 pub use camera::Camera;
 
 use crate::particle::Particle;
-use crate::solver::{self, Simulation};
+use crate::solver::{self, Connection, Simulation};
 
 #[derive(Clone)]
 pub struct Scene {
@@ -25,10 +25,10 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(number: u32, constraint: solver::Constraint) -> Self {
+    pub fn new(number: usize, constraint: solver::Constraint) -> Self {
         let mut scene = Self { 
             camera: Camera::default(), 
-            simulation: Simulation::new(constraint, 2.*solver::PARTICLE_SIZE, &[])};
+            simulation: Simulation::new(constraint, 2.*solver::PARTICLE_SIZE, &[], &[])};
 
         scene.change_number(number);
 
@@ -39,7 +39,7 @@ impl Scene {
         self.simulation.solve(dt);
     }
 
-    pub fn change_number(&mut self, number: u32) {
+    pub fn change_number(&mut self, number: usize) {
         self.simulation.change_number(number)
     }
 }

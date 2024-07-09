@@ -35,7 +35,7 @@ struct Simulation {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ParticlesNumberChanged(u32),
+    ParticlesNumberChanged(usize),
     CameraFovChanged(f32),
     CameraXUpdated(f32),
     CameraYUpdated(f32),
@@ -52,8 +52,8 @@ impl Simulation {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::ParticlesNumberChanged(amount) => {
-                self.scene.change_number(amount);
+            Message::ParticlesNumberChanged(number) => {
+                self.scene.change_number(number);
             }
             Message::CameraFovChanged(fov) => {
                 self.scene.camera.fov = fov;
@@ -81,9 +81,9 @@ impl Simulation {
                 slider(
                     1..=solver::MAX,
                     self.scene.simulation.particles.len() as u32,
-                    Message::ParticlesNumberChanged
+                    |n| Message::ParticlesNumberChanged(n as usize)
                 )
-                .width(1000)
+                .width(3000)
             ),
         ]
         .spacing(40);
