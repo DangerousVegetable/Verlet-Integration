@@ -1,32 +1,35 @@
-use std::borrow::BorrowMut;
-
 use crate::particle::Particle;
 
 use glam::Vec2;
-use itertools::Itertools;
+use rand::Rng;
+
+pub const MAX: u32 = 100000;
+pub const PARTICLE_SIZE: f32 = 0.1;
 #[derive(Clone)]
 pub struct Simulation {
     pub constraint: Constraint,
+    pub particles: Vec<Particle>,
     pub cell_size: f32, 
     pub grid: Grid<usize>,
 }
 
 impl Simulation {
-    pub fn new(constraint: Constraint, cell_size: f32) -> Self {
+    pub fn new(constraint: Constraint, cell_size: f32, particles: &[Particle]) -> Self {
         let bounds = constraint.bounds();
         let width: usize = ((bounds.1.x - bounds.0.x)/cell_size) as usize + 1;
         let height: usize = ((bounds.1.y - bounds.0.y)/cell_size) as usize + 1;
 
         Self {
             constraint,
+            particles: Vec::from(particles),
             cell_size,
             grid: Grid::new(width, height)
         }
     }
 
-    fn populate_grid(&mut self, particles: &mut [Particle]) {
+    fn populate_grid(&mut self) {
         self.grid.clear();
-        for (i, particle) in particles.iter().enumerate() {
+        for (i, particle) in self.particles.iter().enumerate() {
             let p = self.get_cell(particle.pos);
             self.grid.push(p, i);
         }
@@ -38,36 +41,32 @@ impl Simulation {
         ((pos.y - bounds.y)/self.cell_size).max(0.) as usize)
     }
 
-    pub fn solve(&mut self, particles: &mut [Particle], dt: f32) {
+    pub fn solve(&mut self, dt: f32) {
         // populate the grid with indexes of particles
-        self.populate_grid(particles); // TODO: for some reason it's slow in debug mode
+        self.populate_grid(); // TODO: for some reason it's slow in debug mode
         
-        for p in particles.borrow_mut() {
+        for p in self.particles.iter_mut() {
             p.apply_gravity();
         }
 
-        //let mut max = 0;
-        //let mut sum = 0;
         let mut adj_buffer = Vec::new();
-        for i in 0..particles.len() {
-            let c = self.get_cell(particles[i].pos);
+        for i in 0..self.particles.len() {
+            let c = self.get_cell(self.particles[i].pos);
             adj_buffer.clear();
             self.grid.adjacent(c, &mut adj_buffer);
             for &j in &adj_buffer {
                 let (i,j) = (std::cmp::min(i,j), std::cmp::max(i,j));
                 if i == j {continue}
-                let (head, tail) = particles.split_at_mut(i + 1); // such a hacky solution (but they say it's okay)
+                let (head, tail) = self.particles.split_at_mut(i + 1); // such a hacky solution (but they say it's okay)
                 Simulation::resolve_collision(&mut head[i], &mut tail[j - i - 1]);
             }
         }
 
-        //println!("{} - {}", sum/particles.len(), max);
-
-        for p in particles.borrow_mut() {
+        for p in self.particles.iter_mut() {
             p.update(dt);
         }
 
-        for p in particles.borrow_mut() {
+        for p in self.particles.iter_mut() {
             p.apply_constraint(self.constraint);
         }
     }
@@ -81,8 +80,44 @@ impl Simulation {
             p2.set_position(p2.pos - v, true);
         }
     }
+
+    pub fn change_number(&mut self, number: u32) {
+        let curr_particles = self.particles.len() as u32;
+
+        match number.cmp(&curr_particles) {
+            std::cmp::Ordering::Greater => {
+                // spawn
+                let particles_2_spawn = (number - curr_particles) as usize;
+
+                let bounds = self.constraint.bounds();
+                let mut particles = 0;
+                self.particles.extend(std::iter::from_fn(|| {
+                    if particles < particles_2_spawn {
+                        particles += 1;
+                        Some(Particle::new(PARTICLE_SIZE, rnd_origin(bounds)))
+                    } else {
+                        None
+                    }
+                }));
+                //self.particles.push(Particle::new(10., vec2(0., 30.)));
+            }
+            std::cmp::Ordering::Less => {
+                // chop
+                let particles_2_cut = curr_particles - number;
+                let new_len = self.particles.len() - particles_2_cut as usize;
+                self.particles.truncate(new_len);
+            }
+            std::cmp::Ordering::Equal => {}
+        }
+    }
 }
 
+fn rnd_origin(bounds: (Vec2, Vec2)) -> Vec2 {
+    Vec2::new(
+        rand::thread_rng().gen_range(bounds.0.x+PARTICLE_SIZE*2. ..bounds.1.x-PARTICLE_SIZE*2.),
+        rand::thread_rng().gen_range(bounds.0.y+PARTICLE_SIZE*2. ..bounds.1.y-PARTICLE_SIZE*2.),
+    )
+}
 
 #[derive(Clone)]
 pub struct Grid<T> 

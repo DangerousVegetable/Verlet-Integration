@@ -74,13 +74,13 @@ impl Simulation {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let number_str = self.scene.particles.len().to_string();
+        let number_str = self.scene.simulation.particles.len().to_string();
         let number_controls = row![
             control(
                 &number_str,
                 slider(
-                    1..=scene::MAX,
-                    self.scene.particles.len() as u32,
+                    1..=solver::MAX,
+                    self.scene.simulation.particles.len() as u32,
                     Message::ParticlesNumberChanged
                 )
                 .width(1000)
