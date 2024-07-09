@@ -5,13 +5,13 @@ use crate::particle::Particle;
 use glam::Vec2;
 use itertools::Itertools;
 #[derive(Clone)]
-pub struct Solver {
+pub struct Simulation {
     pub constraint: Constraint,
     pub cell_size: f32, 
     pub grid: Grid<usize>,
 }
 
-impl Solver {
+impl Simulation {
     pub fn new(constraint: Constraint, cell_size: f32) -> Self {
         let bounds = constraint.bounds();
         let width: usize = ((bounds.1.x - bounds.0.x)/cell_size) as usize + 1;
@@ -40,21 +40,28 @@ impl Solver {
 
     pub fn solve(&mut self, particles: &mut [Particle], dt: f32) {
         // populate the grid with indexes of particles
-        self.populate_grid(particles); // TODO: it's slow for some reason
+        self.populate_grid(particles); // TODO: for some reason it's slow in debug mode
         
         for p in particles.borrow_mut() {
             p.apply_gravity();
         }
 
+        //let mut max = 0;
+        //let mut sum = 0;
+        let mut adj_buffer = Vec::new();
         for i in 0..particles.len() {
             let c = self.get_cell(particles[i].pos);
-            for j in self.grid.adjacent(c) {
+            adj_buffer.clear();
+            self.grid.adjacent(c, &mut adj_buffer);
+            for &j in &adj_buffer {
                 let (i,j) = (std::cmp::min(i,j), std::cmp::max(i,j));
                 if i == j {continue}
                 let (head, tail) = particles.split_at_mut(i + 1); // such a hacky solution (but they say it's okay)
-                Solver::resolve_collision(&mut head[i], &mut tail[j - i - 1]);
+                Simulation::resolve_collision(&mut head[i], &mut tail[j - i - 1]);
             }
         }
+
+        //println!("{} - {}", sum/particles.len(), max);
 
         for p in particles.borrow_mut() {
             p.update(dt);
@@ -109,24 +116,20 @@ where T: Clone + Copy,
         &self.grid[i][j]
     }
 
-    pub fn adjacent(&self, (i,j): (usize, usize)) -> Vec<T> {
+    pub fn adjacent(&self, (i,j): (usize, usize), buffer: &mut Vec<T>) {
         let (i,j) = (i as isize, j as isize);
 
-        [(i-1, j-1), (i-1, j), (i-1, j+1),
+        let indexes = [(i-1, j-1), (i-1, j), (i-1, j+1),
         (i, j-1), (i, j), (i, j+1),
-        (i+1, j-1), (i+1, j), (i+1, j+1)]
-        .iter()
-        .filter_map(|(i, j)| {
-            if 0 <= *i && 0 <= *j &&
-            *i < self.grid.len() as isize && *j < self.grid[0].len() as isize {
-                Some((*i as usize, *j as usize))
-            }
-            else {None}
-        })
+        (i+1, j-1), (i+1, j), (i+1, j+1)];
 
-        .map(|p| self.at(p).clone())
-        .flatten()
-        .collect()
+        for (i, j) in indexes {
+            if 0 <= i && 0 <= j &&
+            i < self.grid.len() as isize && j < self.grid[0].len() as isize {
+                let p = (i as usize, j as usize);
+                buffer.extend(self.at(p));
+            }
+        }
     }
 }
 

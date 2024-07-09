@@ -24,7 +24,7 @@ impl Default for Particle {
 }
 
 impl Particle {
-    const GRAVITY : Vec2 = vec2(0., -0.03);
+    const GRAVITY : Vec2 = vec2(0., -0.06);
 
     pub fn new(radius: f32, pos: Vec2) -> Self {
         Self {
@@ -50,7 +50,6 @@ impl Particle {
     }
 
     pub fn set_position(&mut self, pos: Vec2, keep_acc: bool) {
-        //self.pos_old = self.pos;
         self.pos = pos;
         self.acc = if keep_acc {self.acc} else {Vec2::ZERO};
     }

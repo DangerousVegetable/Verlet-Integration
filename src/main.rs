@@ -5,6 +5,7 @@ mod solver;
 
 use core::num;
 
+use iced::widget::shader::wgpu::Adapter;
 use scene::Scene;
 
 use iced::time::Instant;
@@ -45,7 +46,7 @@ impl Simulation {
     fn new() -> Self {
         Self {
             start: Instant::now(),
-            scene: Scene::new(10, solver::Constraint::Box(vec2(-20., -2.5), vec2(20., 10.))),
+            scene: Scene::new(10, solver::Constraint::Box(vec2(-20., -2.5), vec2(20., 50.))),
         }
     }
 
@@ -64,7 +65,10 @@ impl Simulation {
                 self.scene.camera.pos.y = y;
             }
             Message::Tick(_time) => {
-                self.scene.update(0.1);
+                self.scene.update(0.05);
+                self.scene.update(0.05);
+                self.scene.update(0.05);
+                self.scene.update(0.05);
             }
         }
     }
@@ -79,7 +83,7 @@ impl Simulation {
                     self.scene.particles.len() as u32,
                     Message::ParticlesNumberChanged
                 )
-                .width(500)
+                .width(1000)
             ),
         ]
         .spacing(40);
@@ -137,7 +141,7 @@ impl Simulation {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(time::Duration::from_millis(3))
+        time::every(time::Duration::from_millis(16))
             .map(Message::Tick)
     }
 }

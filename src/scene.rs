@@ -16,16 +16,16 @@ mod camera;
 pub use camera::Camera;
 
 use crate::particle::Particle;
-use crate::solver::{self, Solver};
+use crate::solver::{self, Simulation};
 
-pub const MAX: u32 = 10000;
+pub const MAX: u32 = 100000;
 pub const PARTICLE_SIZE: f32 = 0.1;
 
 #[derive(Clone)]
 pub struct Scene {
     pub particles: Vec<Particle>,
     pub camera: Camera,
-    pub solver: Solver,
+    pub solver: Simulation,
 }
 
 impl Scene {
@@ -33,7 +33,7 @@ impl Scene {
         let mut scene = Self { 
             particles: vec![], 
             camera: Camera::default(), 
-            solver: Solver::new(constraint, 2.*PARTICLE_SIZE)};
+            solver: Simulation::new(constraint, 2.*PARTICLE_SIZE)};
 
         scene.change_number(number);
 
@@ -78,7 +78,7 @@ impl Scene {
 fn rnd_origin(bounds: (Vec2, Vec2)) -> Vec2 {
     Vec2::new(
         rand::thread_rng().gen_range(bounds.0.x..bounds.1.x),
-        rand::thread_rng().gen_range(bounds.0.y..bounds.1.y),
+        rand::thread_rng().gen_range(bounds.0.y..bounds.1.y/3.),
     )
 }
 
