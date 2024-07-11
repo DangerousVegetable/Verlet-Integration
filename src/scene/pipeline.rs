@@ -22,6 +22,8 @@ pub struct Pipeline {
     // uniforms buffer
     uniforms: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
+    // texture bind group
+    texture_bind_group: wgpu::BindGroup,
 }
 
 impl Pipeline {
@@ -61,10 +63,6 @@ impl Pipeline {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-
-        let diffuse_bytes = include_bytes!("../../textures/particle-xd.png");
-        let diffuse_texture =
-        texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "particle-xd.png").unwrap();
         
         let uniform_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -81,28 +79,6 @@ impl Pipeline {
                         },
                         count: None,
                     },
-                    // particle texture
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float {
-                                filterable: true,
-                            },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    // texture sampler
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::Filtering,
-                        ),
-                        count: None,
-                    },
                 ],
             });
 
@@ -115,12 +91,53 @@ impl Pipeline {
                         binding: 0,
                         resource: uniforms.as_entire_binding(),
                     },
-                    wgpu::BindGroupEntry {
+                ],
+            });
+
+        let diffuse_bytes = include_bytes!("../../textures/particle-xd.png");
+        let diffuse_texture =
+        texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "particle-xd.png").unwrap();
+
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("particles texture bind group layout"),
+                entries: &[
+                    // particle texture
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float {
+                                filterable: true,
+                            },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // texture sampler
+                    wgpu::BindGroupLayoutEntry {
                         binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(
+                            wgpu::SamplerBindingType::Filtering,
+                        ),
+                        count: None,
+                    },
+                ],
+            });
+
+        let texture_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("particles texture bind group"),
+                layout: &texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
                         resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 2,
+                        binding: 1,
                         resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
                     },
                 ],
@@ -129,7 +146,7 @@ impl Pipeline {
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("particles pipeline layout"),
-                bind_group_layouts: &[&uniform_bind_group_layout],
+                bind_group_layouts: &[&uniform_bind_group_layout, &texture_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -186,7 +203,8 @@ impl Pipeline {
             particles: particles_buffer,
             indices,
             uniforms,
-            uniform_bind_group
+            uniform_bind_group,
+            texture_bind_group,
         }
     }
 
@@ -244,6 +262,7 @@ impl Pipeline {
             );
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            pass.set_bind_group(1, &self.texture_bind_group, &[]);
             pass.set_vertex_buffer(0, self.vertices.slice(..));
             pass.set_vertex_buffer(1, self.particles.raw.slice(..));
             pass.set_index_buffer(self.indices.slice(..), wgpu::IndexFormat::Uint16);
