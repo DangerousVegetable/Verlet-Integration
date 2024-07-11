@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::particle::Particle;
 
 use glam::Vec2;
@@ -140,6 +142,9 @@ impl Simulation {
         else {
             while self.particles.len() < number {
                 let left = number-self.particles.len();
+                if left >= 20 {
+                    self.add_ring(0.3, 20);
+                }
                 if left >= 4 {
                     self.add_square(1.0);
                 }
@@ -189,16 +194,31 @@ impl Simulation {
         self.add_rib(ind+1, ind+3, f32::sqrt(2.)*length);
     }
 
+    pub fn add_ring(&mut self, length: f32, number: usize) {
+        let angle = PI/(number as f32);
+        let radius = 0.5*length/f32::atan(angle);
+        let center = rnd_in_bounds(self.constraint.bounds(), radius);
+        let ind = self.particles.len();
+        for i in 0..number {
+            let alpha = 2.*PI*(i as f32)/(number as f32);
+            let pos = center + glam::vec2(f32::cos(alpha), f32::sin(alpha))*radius;
+            self.add_particle(Particle::new(PARTICLE_SIZE, pos));
+            self.add_rib(ind+i, ind+((i+1) % number), length);
+        }
+    }
+
     fn rnd_origin(&self) -> Vec2 {
         let bounds = self.constraint.bounds();
-        Vec2::new(
-            rand::thread_rng().gen_range(bounds.0.x+PARTICLE_SIZE*2. ..bounds.1.x-PARTICLE_SIZE*2.),
-            rand::thread_rng().gen_range(bounds.0.y+PARTICLE_SIZE*2. ..bounds.1.y-PARTICLE_SIZE*2.),
-        )
+        rnd_in_bounds(bounds, 2.*PARTICLE_SIZE)
     }
 }
 
-
+pub fn rnd_in_bounds(bounds: (Vec2, Vec2), margin: f32) -> Vec2 {
+    Vec2::new(
+        rand::thread_rng().gen_range(bounds.0.x+margin ..bounds.1.x-margin),
+        rand::thread_rng().gen_range(bounds.0.y+margin ..bounds.1.y-margin),
+    )
+}
 
 #[derive(Clone, Copy)]
 pub enum Link {
