@@ -23,7 +23,7 @@ pub struct Pipeline {
     uniforms: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
     // texture bind group
-    texture_bind_group: wgpu::BindGroup,
+    textures_bind_group: wgpu::BindGroup,
 }
 
 impl Pipeline {
@@ -204,7 +204,7 @@ impl Pipeline {
             indices,
             uniforms,
             uniform_bind_group,
-            texture_bind_group,
+            textures_bind_group: texture_bind_group,
         }
     }
 
@@ -262,11 +262,36 @@ impl Pipeline {
             );
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            pass.set_bind_group(1, &self.texture_bind_group, &[]);
+            pass.set_bind_group(1, &self.textures_bind_group, &[]);
             pass.set_vertex_buffer(0, self.vertices.slice(..));
             pass.set_vertex_buffer(1, self.particles.raw.slice(..));
             pass.set_index_buffer(self.indices.slice(..), wgpu::IndexFormat::Uint16);
             pass.draw_indexed(0..6, 0, 0..num_particles);
         }
     }
+}
+
+
+const TEXTURES_PATH: &'static str = "textures";
+
+pub fn load_textures(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue
+) -> anyhow::Result<Vec<texture::Texture>> {
+    use std::{fs, io::{self, BufRead, Read}};
+
+    let mut base_path = std::env::current_exe()?;
+    base_path.pop();
+    base_path.push(TEXTURES_PATH);
+
+    let text_desc = fs::File::open(base_path.join("textures.txt"))?;
+    io::BufReader::new(text_desc).lines()
+    .flatten()
+    .map(|line| {
+        let mut texture = fs::File::open(base_path.join(&line))?;
+        let mut diffuse_bytes = Vec::new();
+        texture.read_to_end(&mut diffuse_bytes)?;
+        texture::Texture::from_bytes(&device, &queue, &diffuse_bytes, &line)
+    })
+    .collect::<anyhow::Result<_>>()
 }
