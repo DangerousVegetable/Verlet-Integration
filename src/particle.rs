@@ -1,8 +1,6 @@
-use std::{ops::Mul, time::Duration};
-
 use glam::{vec2, Vec2};
 
-use crate::solver::Constraint;
+use crate::solver::{self, Constraint};
 
 #[derive(Debug, Clone)]
 pub struct Particle {
@@ -10,15 +8,17 @@ pub struct Particle {
     pub pos: glam::Vec2,
     pub pos_old: glam::Vec2,
     pub acc: glam::Vec2,
+    pub texture: u32,
 }
 
 impl Default for Particle {
     fn default() -> Self {
         Self {
-            radius: 0.5,
+            radius: solver::PARTICLE_SIZE,
             pos: glam::Vec2::ZERO,
             pos_old: glam::Vec2::ZERO,
             acc: glam::Vec2::ZERO,
+            texture: 0,
         }
     }
 }
@@ -26,12 +26,13 @@ impl Default for Particle {
 impl Particle {
     const GRAVITY : Vec2 = vec2(0., -0.06);
 
-    pub fn new(radius: f32, pos: Vec2) -> Self {
+    pub fn new(radius: f32, pos: Vec2, texture: u32) -> Self {
         Self {
             radius,
             pos,
             pos_old: pos,
             acc: glam::Vec2::ZERO,
+            texture,
         }
     }
 

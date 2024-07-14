@@ -151,7 +151,7 @@ impl Simulation {
                 else if left >= 3 {
                     self.add_triangle(1.0);
                 }
-                else {self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));}
+                else {self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));}
             }
         }
     }
@@ -170,9 +170,9 @@ impl Simulation {
 
     pub fn add_triangle(&mut self, length: f32) {
         let ind = self.particles.len();
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
 
         self.add_rib(ind, ind+1, length);
         self.add_rib(ind+1, ind+2, length);
@@ -181,10 +181,10 @@ impl Simulation {
 
     pub fn add_square(&mut self, length: f32) {
         let ind = self.particles.len();
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin()));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
 
         self.add_rib(ind, ind+1, length);
         self.add_rib(ind+1, ind+2, length);
@@ -202,7 +202,7 @@ impl Simulation {
         for i in 0..number {
             let alpha = 2.*PI*(i as f32)/(number as f32);
             let pos = center + glam::vec2(f32::cos(alpha), f32::sin(alpha))*radius;
-            self.add_particle(Particle::new(PARTICLE_SIZE, pos));
+            self.add_particle(Particle::new(PARTICLE_SIZE, pos, 0));
             self.add_rib(ind+i, ind+((i+1) % number), length);
         }
     }

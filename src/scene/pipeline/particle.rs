@@ -10,14 +10,17 @@ use crate::particle::Particle;
 pub struct Raw {
     size: f32,
     pos: glam::Vec2,
+    texture: u32, 
 }
 
 impl Raw {
-    const ATTRIBS: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![
+    const ATTRIBS: [wgpu::VertexAttribute; 3] = wgpu::vertex_attr_array![
         // size
         2 => Float32,
         // position
         3 => Float32x2,
+        // texture index
+        4 => Uint32
     ];
 
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
@@ -34,6 +37,7 @@ impl Raw {
         Raw {
             size: particle.radius,
             pos: particle.pos,
+            texture: particle.texture
         }
     }
 

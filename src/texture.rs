@@ -9,6 +9,22 @@ pub struct Texture {
 }
 
 impl Texture {
+    pub fn get_views<'a>(textures: &'a [Texture]) -> Vec<&'a wgpu::TextureView> {
+        let mut views: Vec<&wgpu::TextureView> = Vec::new();
+        for texture in textures.iter() {
+            views.push(&texture.view);
+        }
+        views
+    }
+
+    pub fn get_samplers<'a>(textures: &'a [Texture]) -> Vec<&'a wgpu::Sampler> {
+        let mut samplers: Vec<&wgpu::Sampler> = Vec::new();
+        for texture in textures.iter() {
+            samplers.push(&texture.sampler);
+        }
+        samplers
+    }
+
     pub fn from_bytes(
         device: &wgpu::Device,
         queue: &wgpu::Queue,

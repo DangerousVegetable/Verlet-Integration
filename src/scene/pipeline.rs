@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use iced::widget::shader::wgpu::{self, util::DeviceExt};
 use iced::{Rectangle, Size};
 
@@ -7,7 +9,7 @@ mod vertex;
 use vertex::Vertex;
 mod uniforms;
 pub use uniforms::Uniforms;
-use crate::texture;
+use crate::texture::{self, Texture};
 
 pub mod particle;
 
@@ -94,15 +96,17 @@ impl Pipeline {
                 ],
             });
 
-        let diffuse_bytes = include_bytes!("../../textures/particle-xd.png");
-        let diffuse_texture =
-        texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "particle-xd.png").unwrap();
+        let textures = load_textures(device, queue).unwrap();
+
+        //let diffuse_bytes = include_bytes!("../../textures/particle-xd.png");
+        //let diffuse_texture =
+        //texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "particle-xd.png").unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("particles texture bind group layout"),
+                label: Some("particles textures bind group layout"),
                 entries: &[
-                    // particle texture
+                    // particle textures
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStages::FRAGMENT,
@@ -113,16 +117,16 @@ impl Pipeline {
                             view_dimension: wgpu::TextureViewDimension::D2,
                             multisampled: false,
                         },
-                        count: None,
+                        count: NonZeroU32::new(textures.len() as u32),
                     },
-                    // texture sampler
+                    // texture samplers
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Sampler(
                             wgpu::SamplerBindingType::Filtering,
                         ),
-                        count: None,
+                        count: NonZeroU32::new(textures.len() as u32),
                     },
                 ],
             });
@@ -134,11 +138,11 @@ impl Pipeline {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                        resource: wgpu::BindingResource::TextureViewArray(&Texture::get_views(&textures)),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                        binding: 2,
+                        resource: wgpu::BindingResource::SamplerArray(&Texture::get_samplers(&textures)),
                     },
                 ],
             });
@@ -270,7 +274,6 @@ impl Pipeline {
         }
     }
 }
-
 
 const TEXTURES_PATH: &'static str = "textures";
 
