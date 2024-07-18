@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, ops::{Index, IndexMut}};
 
 use crate::particle::Particle;
 
@@ -122,8 +122,8 @@ impl Simulation {
         match link {
             Link::Force(force) => {
                 let v = (p2.pos - p1.pos).normalize_or_zero();
-                p1.apply_force(v*force);
-                p2.apply_force(-v*force);
+                p1.accelerate(v*force);
+                p2.accelerate(-v*force);
             },
             Link::Rigid(length) => {
                 let mut v = p1.pos - p2.pos;
@@ -145,12 +145,12 @@ impl Simulation {
                 if left >= 20 {
                     self.add_ring(0.3, 20);
                 }
-                //if left >= 4 {
-                //    self.add_square(1.0);
-                //}
-                //else if left >= 3 {
-                //    self.add_triangle(1.0);
-                //}
+                if left >= 4 {
+                    self.add_square(1.0);
+                }
+                else if left >= 3 {
+                    self.add_triangle(1.0);
+                }
                 else {self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));}
                 //self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0))
             }
@@ -231,7 +231,28 @@ pub enum Link {
 pub struct Grid<T> 
 where T: Clone + Copy,
 {
-    grid: Vec<Vec<Vec<T>>>
+    pub width: usize, 
+    pub height: usize,
+    grid: Vec<Vec<T>>
+}
+
+impl<T> Index<(usize, usize)> for Grid<T>
+where T: Clone + Copy 
+{
+    type Output = Vec<T>;
+    fn index(&self, (i, j): (usize, usize)) -> &Self::Output {
+        let ind = i*self.width + j;
+        &self.grid[ind]
+    }
+}
+
+impl<T> IndexMut<(usize, usize)> for Grid<T>
+where T: Clone + Copy
+{
+    fn index_mut(&mut self, (i, j): (usize, usize)) -> &mut Self::Output {
+        let ind = i*self.width + j;
+        &mut self.grid[ind]
+    }
 }
 
 impl<T> Grid<T> 
@@ -239,24 +260,20 @@ where T: Clone + Copy,
 {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
-            grid: vec![vec![Vec::new(); height]; width]
+            width,
+            height,
+            grid: vec![Vec::new(); width*height]
         }
     }
 
     pub fn clear(&mut self) {
-        for col in self.grid.iter_mut() {
-            for cell in col.iter_mut() {
-                cell.clear();
-            }
+        for cell in self.grid.iter_mut() {
+            cell.clear()
         }
     }
 
-    pub fn push(&mut self, (i,j): (usize, usize), value: T) {
-        self.grid[i][j].push(value);
-    }
-
-    pub fn at(&self, (i, j): (usize, usize)) -> &Vec<T> { 
-        &self.grid[i][j]
+    pub fn push(&mut self, ind: (usize, usize), value: T) {
+        self[ind].push(value);
     }
 
     pub fn adjacent(&self, (i,j): (usize, usize), buffer: &mut Vec<T>) {
@@ -268,9 +285,9 @@ where T: Clone + Copy,
 
         for (i, j) in indexes {
             if 0 <= i && 0 <= j &&
-            i < self.grid.len() as isize && j < self.grid[0].len() as isize {
+            i < self.width as isize && j < self.height as isize {
                 let p = (i as usize, j as usize);
-                buffer.extend(self.at(p));
+                buffer.extend(&self[p]);
             }
         }
     }

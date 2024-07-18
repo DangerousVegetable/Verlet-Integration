@@ -43,11 +43,11 @@ impl Particle {
     }
 
     pub fn apply_gravity(&mut self) {
-        self.apply_force(Particle::GRAVITY);
+        self.accelerate(Particle::GRAVITY);
     }
 
-    pub fn apply_force(&mut self, force: Vec2) {
-        self.acc += force;
+    pub fn accelerate(&mut self, acceleration: Vec2) {
+        self.acc += acceleration;
     }
 
     pub fn set_position(&mut self, pos: Vec2, keep_acc: bool) {

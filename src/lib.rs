@@ -1,7 +1,6 @@
 use iced::Application;
 use iced::Settings;
 use iced_wgpu::Settings as CompositorSettings;
-//use iced_winit::application::run;
 
 pub trait CustomApplication: Application {
     fn run(settings: Settings<Self::Flags>) -> iced::Result
@@ -12,6 +11,7 @@ pub trait CustomApplication: Application {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             antialiasing: None,
+            //present_mode: iced::widget::shader::wgpu::PresentMode::AutoVsync,
             ..CompositorSettings::default()
         };
 
@@ -76,7 +76,7 @@ where
 }
 
 mod compositor {
-    use iced_wgpu::core::{Color, Size};
+    use iced_wgpu::core::Color;
     use iced_wgpu::graphics::{self, color, compositor, Error, Viewport};
     use iced_wgpu::{Backend, Primitive, Renderer, Settings};
     use iced_wgpu::wgpu;
