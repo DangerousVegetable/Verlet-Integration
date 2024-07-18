@@ -145,13 +145,14 @@ impl Simulation {
                 if left >= 20 {
                     self.add_ring(0.3, 20);
                 }
-                if left >= 4 {
-                    self.add_square(1.0);
-                }
-                else if left >= 3 {
-                    self.add_triangle(1.0);
-                }
+                //if left >= 4 {
+                //    self.add_square(1.0);
+                //}
+                //else if left >= 3 {
+                //    self.add_triangle(1.0);
+                //}
                 else {self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));}
+                //self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0))
             }
         }
     }
@@ -182,9 +183,9 @@ impl Simulation {
     pub fn add_square(&mut self, length: f32) {
         let ind = self.particles.len();
         self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 1));
         self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
+        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 1));
 
         self.add_rib(ind, ind+1, length);
         self.add_rib(ind+1, ind+2, length);
@@ -202,7 +203,7 @@ impl Simulation {
         for i in 0..number {
             let alpha = 2.*PI*(i as f32)/(number as f32);
             let pos = center + glam::vec2(f32::cos(alpha), f32::sin(alpha))*radius;
-            self.add_particle(Particle::new(PARTICLE_SIZE, pos, 0));
+            self.add_particle(Particle::new(PARTICLE_SIZE, pos, (i%2) as u32));
             self.add_rib(ind+i, ind+((i+1) % number), length);
         }
     }

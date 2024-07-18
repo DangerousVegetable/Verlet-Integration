@@ -141,7 +141,7 @@ impl Pipeline {
                         resource: wgpu::BindingResource::TextureViewArray(&Texture::get_views(&textures)),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 2,
+                        binding: 1,
                         resource: wgpu::BindingResource::SamplerArray(&Texture::get_samplers(&textures)),
                     },
                 ],

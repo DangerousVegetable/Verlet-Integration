@@ -10,22 +10,20 @@ use scene::Scene;
 
 use iced::time::Instant;
 use iced::widget::{column, row, shader, slider, text};
-use iced::{window, Settings};
+use iced::{window, Application, Settings};
 use iced::time;
 use iced::{Alignment, Element, Length, Subscription};
+use iced::executor;
+use iced::Theme;
+use iced::Command;
 
 use glam::{Vec2, vec2};
+use TanX::CustomApplication;
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::program(
-        "TanX - the Game",
-        Simulation::update,
-        Simulation::view,
-    )
-    .subscription(Simulation::subscription)
-    .run()
+    <Simulation as CustomApplication>::run(iced::Settings::default())
 }
 
 struct Simulation {
@@ -33,24 +31,29 @@ struct Simulation {
     scene: Scene,
 }
 
-#[derive(Debug, Clone)]
-enum Message {
-    ParticlesNumberChanged(usize),
-    CameraFovChanged(f32),
-    CameraXUpdated(f32),
-    CameraYUpdated(f32),
-    Tick(Instant),
-}
+impl CustomApplication for Simulation {}
 
-impl Simulation {
-    fn new() -> Self {
-        Self {
-            start: Instant::now(),
-            scene: Scene::new(10, solver::Constraint::Box(vec2(-20., -2.5), vec2(20., 50.))),
-        }
+impl Application for Simulation {
+    type Executor = executor::Default;
+    type Message = Message;
+    type Theme = Theme;
+    type Flags = ();
+
+    fn title(&self) -> String {
+        "TanX".to_string()
     }
 
-    fn update(&mut self, message: Message) {
+    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
+        (
+            Self {
+                start: Instant::now(),
+                scene: Scene::new(10, solver::Constraint::Box(vec2(-20., -2.5), vec2(20., 50.))),
+            },
+            Command::none(),
+        )
+    }
+
+    fn update(&mut self, message: Message) -> Command<Self::Message> {
         match message {
             Message::ParticlesNumberChanged(number) => {
                 self.scene.change_number(number);
@@ -71,6 +74,8 @@ impl Simulation {
                 self.scene.update(0.05);
             }
         }
+
+        Command::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -144,12 +149,19 @@ impl Simulation {
         time::every(time::Duration::from_millis(16))
             .map(Message::Tick)
     }
+
+    fn theme(&self) -> Self::Theme {
+        Theme::Dark
+    }
 }
 
-impl Default for Simulation {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Debug, Clone)]
+enum Message {
+    ParticlesNumberChanged(usize),
+    CameraFovChanged(f32),
+    CameraXUpdated(f32),
+    CameraYUpdated(f32),
+    Tick(Instant),
 }
 
 fn control<'a>(
