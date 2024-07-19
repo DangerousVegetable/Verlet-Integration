@@ -1,2 +1,2 @@
-particle-xd.png
-particle-red.png
+particle-sand.png
+particle-metal.png

@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, ops::{Index, IndexMut}};
 
-use crate::particle::Particle;
+use crate::particle::{Particle, METAL, SAND};
 
 use glam::Vec2;
 use rand::Rng;
@@ -111,10 +111,12 @@ impl Simulation {
     pub fn resolve_collision(p1: &mut Particle, p2: &mut Particle) {
         let mut v = p1.pos - p2.pos;
         if v.length() < p1.radius + p2.radius {
-            let overlap = (p1.radius + p2.radius - v.length())/2.;
+            let overlap = (p1.radius + p2.radius - v.length());
+            let c1 = p2.mass/(p1.mass + p2.mass);
+            let c2 = p1.mass/(p1.mass + p2.mass);
             v = v.normalize()*overlap;
-            p1.set_position(p1.pos + v, true);
-            p2.set_position(p2.pos - v, true);
+            p1.set_position(p1.pos + v*c1, true);
+            p2.set_position(p2.pos - v*c2, true);
         }
     }
 
@@ -142,17 +144,23 @@ impl Simulation {
         else {
             while self.particles.len() < number {
                 let left = number-self.particles.len();
-                if left >= 20 {
-                    self.add_ring(0.3, 20);
+                //if left >= 20 {
+                //    self.add_ring(0.3, 20);
+                //}
+                //else if left >= 4 {
+                    //    self.add_square(1.0);
+                //}
+                //else if left >= 3 {
+                    //    self.add_triangle(1.0);
+                //}
+                //else {self.add_particle(SAND.place(self.rnd_origin()));}
+                
+                if self.particles.len() % 10 == 0 {
+                    self.add_particle(METAL.place(self.rnd_origin()))
                 }
-                if left >= 4 {
-                    self.add_square(1.0);
+                else {
+                    self.add_particle(SAND.place(self.rnd_origin()))
                 }
-                else if left >= 3 {
-                    self.add_triangle(1.0);
-                }
-                else {self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));}
-                //self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0))
             }
         }
     }
@@ -170,29 +178,14 @@ impl Simulation {
     }
 
     pub fn add_triangle(&mut self, length: f32) {
-        let ind = self.particles.len();
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-
-        self.add_rib(ind, ind+1, length);
-        self.add_rib(ind+1, ind+2, length);
-        self.add_rib(ind+2, ind, length);
+        self.add_ring(length, 3);
     }
 
     pub fn add_square(&mut self, length: f32) {
         let ind = self.particles.len();
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 1));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 0));
-        self.add_particle(Particle::new(PARTICLE_SIZE, self.rnd_origin(), 1));
-
-        self.add_rib(ind, ind+1, length);
-        self.add_rib(ind+1, ind+2, length);
-        self.add_rib(ind+2, ind+3, length);
-        self.add_rib(ind+3, ind, length);
-        self.add_rib(ind, ind+2, f32::sqrt(2.)*length);
-        self.add_rib(ind+1, ind+3, f32::sqrt(2.)*length);
+        self.add_ring(length, 4);
+        self.add_rib(ind, ind+2, length*f32::sqrt(2.));
+        self.add_rib(ind+1, ind+3, length*f32::sqrt(2.));
     }
 
     pub fn add_ring(&mut self, length: f32, number: usize) {
@@ -203,7 +196,7 @@ impl Simulation {
         for i in 0..number {
             let alpha = 2.*PI*(i as f32)/(number as f32);
             let pos = center + glam::vec2(f32::cos(alpha), f32::sin(alpha))*radius;
-            self.add_particle(Particle::new(PARTICLE_SIZE, pos, (i%2) as u32));
+            self.add_particle(SAND.place(pos));
             self.add_rib(ind+i, ind+((i+1) % number), length);
         }
     }

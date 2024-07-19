@@ -2,9 +2,24 @@ use glam::{vec2, Vec2};
 
 use crate::solver::{self, Constraint};
 
+pub const SAND : Particle = Particle {
+    radius: solver::PARTICLE_SIZE,
+    mass: 1.,
+    texture: 0,
+    ..Particle::null()
+};
+
+pub const METAL : Particle = Particle {
+    radius: solver::PARTICLE_SIZE,
+    mass: 50.,
+    texture: 1,
+    ..Particle::null()
+};
+
 #[derive(Debug, Clone)]
 pub struct Particle {
     pub radius: f32,
+    pub mass: f32,
     pub pos: glam::Vec2,
     pub pos_old: glam::Vec2,
     pub acc: glam::Vec2,
@@ -13,22 +28,35 @@ pub struct Particle {
 
 impl Default for Particle {
     fn default() -> Self {
-        Self {
-            radius: solver::PARTICLE_SIZE,
-            pos: glam::Vec2::ZERO,
-            pos_old: glam::Vec2::ZERO,
-            acc: glam::Vec2::ZERO,
-            texture: 0,
-        }
+        Particle::null()
     }
 }
 
 impl Particle {
     const GRAVITY : Vec2 = vec2(0., -0.06);
 
-    pub fn new(radius: f32, pos: Vec2, texture: u32) -> Self {
+    pub const fn null() -> Self {
+        Self {
+            radius: solver::PARTICLE_SIZE,
+            mass: 1.,
+            texture: 0,
+            pos: glam::Vec2::ZERO,
+            pos_old: glam::Vec2::ZERO,
+            acc: glam::Vec2::ZERO,
+        }
+    }
+
+    pub fn place(&self, pos: Vec2) -> Self {
+        Particle { 
+            pos, 
+            pos_old: pos, 
+            ..*self}
+    }
+
+    pub fn new(radius: f32, mass: f32, pos: Vec2, texture: u32) -> Self {
         Self {
             radius,
+            mass,
             pos,
             pos_old: pos,
             acc: glam::Vec2::ZERO,
