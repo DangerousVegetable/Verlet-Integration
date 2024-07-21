@@ -1,6 +1,8 @@
 use glam::{vec2, Mat4, Vec2, vec4};
 use iced::Rectangle;
 
+pub const MAX_FOV: f32 = 200.;
+
 #[derive(Clone, Copy)]
 pub struct Camera {
     pub pos: Vec2,
@@ -11,7 +13,7 @@ impl Default for Camera {
     fn default() -> Self {
         Self {
             pos: vec2(0., 0.),
-            fov: 25.,
+            fov: 50.,
         }
     }
 }

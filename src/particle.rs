@@ -11,12 +11,12 @@ pub const SAND : Particle = Particle {
 
 pub const METAL : Particle = Particle {
     radius: solver::PARTICLE_SIZE,
-    mass: 50.,
+    mass: 10.,
     texture: 1,
     ..Particle::null()
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Particle {
     pub radius: f32,
     pub mass: f32,
@@ -33,7 +33,7 @@ impl Default for Particle {
 }
 
 impl Particle {
-    const GRAVITY : Vec2 = vec2(0., -0.06);
+    const GRAVITY : Vec2 = vec2(0., -0.01);
 
     pub const fn null() -> Self {
         Self {

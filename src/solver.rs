@@ -1,10 +1,12 @@
-use std::{f32::consts::PI, ops::{Index, IndexMut}};
+use std::{borrow::Borrow, f32::consts::PI, ops::{Index, IndexMut, Range}};
+
+use glam::{vec2, Vec2};
+use rand::Rng;
+use rayon::prelude::*;
+
+use smog::multithreaded::{self, UnsafeMultithreadedArray};
 
 use crate::particle::{Particle, METAL, SAND};
-
-use glam::Vec2;
-use rand::Rng;
-
 pub const MAX: u32 = 100000;
 pub const PARTICLE_SIZE: f32 = 0.1;
 
@@ -22,8 +24,8 @@ pub struct Simulation {
 impl Simulation {
     pub fn new(constraint: Constraint, cell_size: f32, particles: &[Particle], connections: &[Connection]) -> Self {
         let bounds = constraint.bounds();
-        let width: usize = ((bounds.1.x - bounds.0.x)/cell_size) as usize + 1;
-        let height: usize = ((bounds.1.y - bounds.0.y)/cell_size) as usize + 1;
+        let width: usize = ((bounds.1.x - bounds.0.x)/cell_size) as usize + 3;
+        let height: usize = ((bounds.1.y - bounds.0.y)/cell_size) as usize + 3;
 
         Self {
             constraint,
@@ -44,8 +46,8 @@ impl Simulation {
 
     fn get_cell(&self, pos: Vec2) -> (usize, usize) {
         let bounds = self.constraint.bounds().0;
-        (((pos.x - bounds.x)/self.cell_size).max(0.) as usize, 
-        ((pos.y - bounds.y)/self.cell_size).max(0.) as usize)
+        (((pos.x - bounds.x)/self.cell_size).max(0.) as usize + 1, 
+        ((pos.y - bounds.y)/self.cell_size).max(0.) as usize + 1)
     }
 
     pub fn solve(&mut self, dt: f32) {
@@ -57,7 +59,6 @@ impl Simulation {
         self.resolve_collisions();
 
         self.resolve_connections();
-
         self.update_particles(dt);
 
         self.apply_constraint();
@@ -70,17 +71,49 @@ impl Simulation {
     }
 
     fn resolve_collisions(&mut self) {
-        let mut adj_buffer = Vec::new();
-        for i in 0..self.particles.len() {
-            let c = self.get_cell(self.particles[i].pos);
-            adj_buffer.clear();
-            self.grid.adjacent(c, &mut adj_buffer);
-            for &j in &adj_buffer {
-                let (i,j) = (std::cmp::min(i,j), std::cmp::max(i,j));
-                if i == j {continue}
-                let (head, tail) = self.particles.split_at_mut(i + 1); // such a hacky solution (but they say it's okay)
-                Simulation::resolve_collision(&mut head[i], &mut tail[j - i - 1]);
-            }
+        let pool = rayon::ThreadPoolBuilder::new()
+            //.num_threads(1)
+            .build()
+            .unwrap();
+
+        let even: Vec<Range<usize>> = (1..self.grid.width-1)
+            .filter(|i| i%4 == 1)
+            .map(|i| i..std::cmp::min(i+2, self.grid.width-1))
+            .collect();
+        let odd: Vec<Range<usize>> = (1..self.grid.width-1)
+            .filter(|i| i%4 == 3)
+            .map(|i| i..std::cmp::min(i+2, self.grid.width-1))
+            .collect();
+
+        let groups = &[even, odd];
+
+        for group in groups {
+            let _ = pool.scope(|s| {
+                let particles = UnsafeMultithreadedArray::new(&mut self.particles); // create unsafe array that can be manipulated in threads
+                let grid: &Grid<usize> = self.grid.borrow(); // borrow immutable grid to be accessible in threads
+    
+                for range in group.iter() {
+                    s.spawn(move |_| {
+                        for col in range.clone() {
+                            for row in 1..grid.height-1 {
+    
+                                let c = (col, row);
+                                for &i in grid[c].iter() {
+                                    for dc in -1..=1 {
+                                        for dr in -1..=1 {
+                                            let adj = ((col as isize + dc) as usize, (row as isize + dr) as usize);
+                                            for &j in grid[adj].iter() {
+                                                if i == j {continue}
+                                                Simulation::resolve_collision(&mut particles.clone()[i], &mut particles.clone()[j]);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    })
+                }
+            });
         }
     }
 
@@ -154,12 +187,14 @@ impl Simulation {
                     //    self.add_triangle(1.0);
                 //}
                 //else {self.add_particle(SAND.place(self.rnd_origin()));}
-                
+                let mut bounds = self.constraint.bounds();
+                bounds.0.y = bounds.1.y*0.8;
+                let pos = rnd_in_bounds(bounds, 2.*PARTICLE_SIZE);
                 if self.particles.len() % 10 == 0 {
-                    self.add_particle(METAL.place(self.rnd_origin()))
+                    self.add_particle(SAND.place(pos));
                 }
                 else {
-                    self.add_particle(SAND.place(self.rnd_origin()))
+                    self.add_particle(SAND.place(pos));
                 }
             }
         }
@@ -234,7 +269,7 @@ where T: Clone + Copy
 {
     type Output = Vec<T>;
     fn index(&self, (i, j): (usize, usize)) -> &Self::Output {
-        let ind = i*self.width + j;
+        let ind = i*self.height + j;
         &self.grid[ind]
     }
 }
@@ -243,7 +278,7 @@ impl<T> IndexMut<(usize, usize)> for Grid<T>
 where T: Clone + Copy
 {
     fn index_mut(&mut self, (i, j): (usize, usize)) -> &mut Self::Output {
-        let ind = i*self.width + j;
+        let ind = i*self.height + j;
         &mut self.grid[ind]
     }
 }
@@ -267,22 +302,6 @@ where T: Clone + Copy,
 
     pub fn push(&mut self, ind: (usize, usize), value: T) {
         self[ind].push(value);
-    }
-
-    pub fn adjacent(&self, (i,j): (usize, usize), buffer: &mut Vec<T>) {
-        let (i,j) = (i as isize, j as isize);
-
-        let indexes = [(i-1, j-1), (i-1, j), (i-1, j+1),
-        (i, j-1), (i, j), (i, j+1),
-        (i+1, j-1), (i+1, j), (i+1, j+1)];
-
-        for (i, j) in indexes {
-            if 0 <= i && 0 <= j &&
-            i < self.width as isize && j < self.height as isize {
-                let p = (i as usize, j as usize);
-                buffer.extend(&self[p]);
-            }
-        }
     }
 }
 

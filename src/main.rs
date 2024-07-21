@@ -3,14 +3,11 @@ mod particle;
 mod texture;
 mod solver;
 
-use core::num;
-
-use iced::widget::shader::wgpu::Adapter;
-use scene::Scene;
+use scene::{Scene, MAX_FOV};
 
 use iced::time::Instant;
 use iced::widget::{column, row, shader, slider, text};
-use iced::{window, Application, Settings};
+use iced::{Application};
 use iced::time;
 use iced::{Alignment, Element, Length, Subscription};
 use iced::executor;
@@ -18,7 +15,7 @@ use iced::Theme;
 use iced::Command;
 
 use glam::{Vec2, vec2};
-use TanX::CustomApplication;
+use smog::CustomApplication;
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -47,7 +44,7 @@ impl Application for Simulation {
         (
             Self {
                 start: Instant::now(),
-                scene: Scene::new(10, solver::Constraint::Box(vec2(-20., -2.5), vec2(20., 50.))),
+                scene: Scene::new(10, solver::Constraint::Box(vec2(-40., -2.5), vec2(40., 50.))),
             },
             Command::none(),
         )
@@ -68,10 +65,11 @@ impl Application for Simulation {
                 self.scene.camera.pos.y = y;
             }
             Message::Tick(_time) => {
-                self.scene.update(0.05);
-                self.scene.update(0.05);
-                self.scene.update(0.05);
-                self.scene.update(0.05);
+                self.scene.update(0.1);
+                self.scene.update(0.1);
+                self.scene.update(0.1);
+                self.scene.update(0.1);
+                self.scene.update(0.1);
             }
         }
 
@@ -97,7 +95,7 @@ impl Application for Simulation {
             control(
                 "FOV",
                 slider(
-                    1. ..=100.,
+                    1. ..=MAX_FOV,
                     self.scene.camera.fov,
                     Message::CameraFovChanged
                 )

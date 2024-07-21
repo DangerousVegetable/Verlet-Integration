@@ -13,7 +13,7 @@ use pipeline::Pipeline;
 use pipeline::Uniforms;
 
 mod camera;
-pub use camera::Camera;
+pub use camera::{Camera, MAX_FOV};
 
 use crate::particle::Particle;
 use crate::solver::{self, Connection, Simulation};
