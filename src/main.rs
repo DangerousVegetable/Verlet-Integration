@@ -21,6 +21,11 @@ use smog::CustomApplication;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(10)
+        .build_global()
+        .unwrap();
+
     <Simulation as CustomApplication>::run(iced::Settings::default())
 }
 
@@ -73,7 +78,7 @@ impl Application for Simulation {
                 for _ in 0..8 {
                     self.scene.update(0.01);
                 }
-                println!("{}", (Instant::now() - time).as_millis());
+                println!("{}", (Instant::now() - time).as_nanos() as f32 / 1000000.);
             }
             Message::Event(event) => match event {
                 event::Event::Keyboard(keyboard::Event::KeyPressed {
