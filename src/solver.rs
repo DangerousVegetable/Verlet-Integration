@@ -6,7 +6,6 @@ use std::{
 };
 
 use glam::{vec2, Vec2};
-use iced_tiny_skia::window::compositor::new;
 use rand::Rng;
 use rayon::prelude::*;
 

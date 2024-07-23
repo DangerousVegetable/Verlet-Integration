@@ -18,13 +18,14 @@ use iced::{Alignment, Element, Length, Subscription};
 use glam::{vec2, Vec2};
 use smog::CustomApplication;
 
+const SUB_TICKS: usize = 8;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(10)
-        .build_global()
-        .unwrap();
+    //rayon::ThreadPoolBuilder::new()
+    //    .num_threads(10)
+    //    .build_global()
+    //    .unwrap();
 
     <Simulation as CustomApplication>::run(iced::Settings::default())
 }
@@ -52,7 +53,7 @@ impl Application for Simulation {
                 start: Instant::now(),
                 scene: Scene::new(
                     10,
-                    solver::Constraint::Box(vec2(-40., -10.), vec2(40., 40.)),
+                    solver::Constraint::Box(vec2(-60., -10.), vec2(60., 40.)),
                 ),
             },
             Command::none(),
@@ -75,21 +76,20 @@ impl Application for Simulation {
             }
             Message::Tick(_time) => {
                 let time = Instant::now();
-                for _ in 0..8 {
-                    self.scene.update(0.01);
+                let dt = 0.08/SUB_TICKS as f32;
+                for _ in 0..SUB_TICKS {
+                    self.scene.update(dt);
                 }
                 println!("{}", (Instant::now() - time).as_nanos() as f32 / 1000000.);
             }
             Message::Event(event) => match event {
                 event::Event::Keyboard(keyboard::Event::KeyPressed {
-                    key: keyboard::Key::Character(c),//keyboard::Key::Named(keyboard::key::Named::Space),
+                    key: keyboard::Key::Named(keyboard::key::Named::Space),
                     location: _,
                     modifiers: _,
                     text: _,
                 }) => {
-                    if c == SmolStr::new("w") {
-                        self.scene.change_number(self.scene.simulation.particles.len() + 100);
-                    }
+                    self.scene.change_number(self.scene.simulation.particles.len() + 100);
                 }
                 _ => {}
             },

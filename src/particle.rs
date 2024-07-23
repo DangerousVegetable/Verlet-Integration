@@ -34,6 +34,7 @@ impl Default for Particle {
 
 impl Particle {
     const GRAVITY : Vec2 = vec2(0., -1.);
+    const SLOWDOWN : f32 = 10.;
 
     pub const fn null() -> Self {
         Self {
@@ -65,7 +66,8 @@ impl Particle {
     }
 
     pub fn update(&mut self, dt: f32) {
-        let new_pos = self.pos*2. - self.pos_old + self.acc*dt*dt;
+        let vel = self.pos - self.pos_old;
+        let new_pos = self.pos + vel + (self.acc - vel*Particle::SLOWDOWN)*dt*dt;
         self.pos_old = self.pos;
         self.set_position(new_pos, false);
     }
