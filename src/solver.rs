@@ -1,13 +1,14 @@
-use std::{borrow::Borrow, f32::consts::PI, ops::{Index, IndexMut, Range}};
+use std::{borrow::Borrow, f32::consts::PI, ops::{Index, IndexMut, Range}, time::Instant};
 
 use glam::{vec2, Vec2};
+use iced_tiny_skia::window::compositor::new;
 use rand::Rng;
 use rayon::prelude::*;
 
 use smog::multithreaded::{self, UnsafeMultithreadedArray};
 
 use crate::particle::{Particle, METAL, SAND};
-pub const MAX: u32 = 100000;
+pub const MAX: u32 = 200000;
 pub const PARTICLE_SIZE: f32 = 0.1;
 
 pub type Connection = (usize, usize, Link);
@@ -52,27 +53,25 @@ impl Simulation {
 
     pub fn solve(&mut self, dt: f32) {
         // populate the grid with indexes of particles
+        //let time = Instant::now();
         self.populate_grid(); // TODO: for some reason it's slow in debug mode
+        //let elapsed = Instant::now() - time;
+        //println!("populate time: {}", 8.*elapsed.as_nanos() as f32 / 1000000.);
         
-        self.apply_gravity();
-
         self.resolve_collisions();
-
         self.resolve_connections();
-        self.update_particles(dt);
 
-        self.apply_constraint();
-    }
-
-    fn apply_gravity(&mut self) {
-        for p in self.particles.iter_mut() {
-            p.apply_gravity();
-        }
+        self.particles.par_iter_mut()
+            .for_each(|p| {
+                p.apply_gravity();
+                p.update(dt);
+                p.apply_constraint(self.constraint);
+            });
     }
 
     fn resolve_collisions(&mut self) {
         let pool = rayon::ThreadPoolBuilder::new()
-            //.num_threads(1)
+            .num_threads(10)
             .build()
             .unwrap();
 
@@ -126,18 +125,6 @@ impl Simulation {
             let (i, j) = (std::cmp::min(i, j), std::cmp::max(i, j));
             let (head, tail) = self.particles.split_at_mut(i + 1);
             Simulation::resolve_connection(&mut head[i], &mut tail[j - i - 1], link);
-        }
-    }
-
-    fn update_particles(&mut self, dt: f32) {
-        for p in self.particles.iter_mut() {
-            p.update(dt);
-        }
-    }
-
-    fn apply_constraint(&mut self) {
-        for p in self.particles.iter_mut() {
-            p.apply_constraint(self.constraint);
         }
     }
 
@@ -255,19 +242,52 @@ pub enum Link {
     Rigid(f32), // constant length
 }
 
+const CELL_MAX: usize = 4;
+
+#[derive(Default, Clone)]
+pub struct Cell<T> 
+where T: Clone + Copy + Default,
+{
+    pub len: usize,
+    pub elements: [T; CELL_MAX]
+}
+
+impl<T> Cell<T>
+where T: Clone + Copy + Default,
+{
+    pub fn push(&mut self, elem: T) {
+        if self.len < CELL_MAX {
+            self.elements[self.len] = elem;
+            self.len += 1;
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<T> {
+        self.elements[0..self.len].iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<T> {
+        self.elements[0..self.len].iter_mut()
+    }
+}
+
 #[derive(Clone)]
 pub struct Grid<T> 
-where T: Clone + Copy,
+where T: Clone + Copy + Default,
 {
     pub width: usize, 
     pub height: usize,
-    grid: Vec<Vec<T>>
+    grid: Vec<Cell<T>>
 }
 
 impl<T> Index<(usize, usize)> for Grid<T>
-where T: Clone + Copy 
+where T: Clone + Copy + Default 
 {
-    type Output = Vec<T>;
+    type Output = Cell<T>;
     fn index(&self, (i, j): (usize, usize)) -> &Self::Output {
         let ind = i*self.height + j;
         &self.grid[ind]
@@ -275,7 +295,7 @@ where T: Clone + Copy
 }
 
 impl<T> IndexMut<(usize, usize)> for Grid<T>
-where T: Clone + Copy
+where T: Clone + Copy + Default
 {
     fn index_mut(&mut self, (i, j): (usize, usize)) -> &mut Self::Output {
         let ind = i*self.height + j;
@@ -284,13 +304,13 @@ where T: Clone + Copy
 }
 
 impl<T> Grid<T> 
-where T: Clone + Copy,
+where T: Clone + Copy + Default,
 {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
             width,
             height,
-            grid: vec![Vec::new(); width*height]
+            grid: vec![Cell::<T>::default(); width*height]
         }
     }
 

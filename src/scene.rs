@@ -1,11 +1,7 @@
-use std::cmp::Ordering;
-use std::iter;
-
 use glam::{Vec2, vec2};
 use iced::mouse;
 use iced::widget::shader::{self, wgpu};
 use iced::Rectangle;
-use rand::Rng;
 
 mod pipeline;
 use pipeline::particle::{self};

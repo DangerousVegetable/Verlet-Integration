@@ -33,7 +33,7 @@ impl Default for Particle {
 }
 
 impl Particle {
-    const GRAVITY : Vec2 = vec2(0., -0.01);
+    const GRAVITY : Vec2 = vec2(0., -1.);
 
     pub const fn null() -> Self {
         Self {

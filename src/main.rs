@@ -1,20 +1,21 @@
-mod scene;
 mod particle;
-mod texture;
+mod scene;
 mod solver;
+mod texture;
 
+use iced_core::SmolStr;
 use scene::{Scene, MAX_FOV};
 
+use iced::executor;
+use iced::time;
 use iced::time::Instant;
 use iced::widget::{column, row, shader, slider, text};
-use iced::{Application};
-use iced::time;
-use iced::{Alignment, Element, Length, Subscription};
-use iced::executor;
-use iced::Theme;
 use iced::Command;
+use iced::Theme;
+use iced::{event, keyboard, Application};
+use iced::{Alignment, Element, Length, Subscription};
 
-use glam::{Vec2, vec2};
+use glam::{vec2, Vec2};
 use smog::CustomApplication;
 
 fn main() -> iced::Result {
@@ -37,14 +38,17 @@ impl Application for Simulation {
     type Flags = ();
 
     fn title(&self) -> String {
-        "TanX".to_string()
+        "SMOG".to_string()
     }
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
         (
             Self {
                 start: Instant::now(),
-                scene: Scene::new(10, solver::Constraint::Box(vec2(-40., -2.5), vec2(40., 50.))),
+                scene: Scene::new(
+                    10,
+                    solver::Constraint::Box(vec2(-40., -10.), vec2(40., 40.)),
+                ),
             },
             Command::none(),
         )
@@ -65,12 +69,25 @@ impl Application for Simulation {
                 self.scene.camera.pos.y = y;
             }
             Message::Tick(_time) => {
-                self.scene.update(0.1);
-                self.scene.update(0.1);
-                self.scene.update(0.1);
-                self.scene.update(0.1);
-                self.scene.update(0.1);
+                let time = Instant::now();
+                for _ in 0..8 {
+                    self.scene.update(0.01);
+                }
+                println!("{}", (Instant::now() - time).as_millis());
             }
+            Message::Event(event) => match event {
+                event::Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Character(c),//keyboard::Key::Named(keyboard::key::Named::Space),
+                    location: _,
+                    modifiers: _,
+                    text: _,
+                }) => {
+                    if c == SmolStr::new("w") {
+                        self.scene.change_number(self.scene.simulation.particles.len() + 100);
+                    }
+                }
+                _ => {}
+            },
         }
 
         Command::none()
@@ -78,74 +95,66 @@ impl Application for Simulation {
 
     fn view(&self) -> Element<'_, Message> {
         let number_str = self.scene.simulation.particles.len().to_string();
-        let number_controls = row![
-            control(
-                &number_str,
-                slider(
-                    1..=solver::MAX,
-                    self.scene.simulation.particles.len() as u32,
-                    |n| Message::ParticlesNumberChanged(n as usize)
-                )
-                .width(3000)
-            ),
-        ]
+        let number_controls = row![control(
+            &number_str,
+            slider(
+                1..=solver::MAX,
+                self.scene.simulation.particles.len() as u32,
+                |n| Message::ParticlesNumberChanged(n as usize)
+            )
+            .width(3000)
+        ),]
         .spacing(40);
 
-        let fov_controls = row![
-            control(
-                "FOV",
-                slider(
-                    1. ..=MAX_FOV,
-                    self.scene.camera.fov,
-                    Message::CameraFovChanged
-                )
-                .width(100)
-            ),
-        ]
+        let fov_controls = row![control(
+            "FOV",
+            slider(
+                1. ..=MAX_FOV,
+                self.scene.camera.fov,
+                Message::CameraFovChanged
+            )
+            .width(100)
+        ),]
         .spacing(40);
-        let x_controls = row![
-            control(
-                "X",
-                slider(
-                    -50. ..=50.,
-                    self.scene.camera.pos.x,
-                    Message::CameraXUpdated
-                )
-                .width(300)
-            ),
-        ]
+        let x_controls = row![control(
+            "X",
+            slider(
+                -50. ..=50.,
+                self.scene.camera.pos.x,
+                Message::CameraXUpdated
+            )
+            .width(300)
+        ),]
         .spacing(40);
-        let y_controls = row![
-            control(
-                "Y",
-                slider(
-                    -50. ..=50.,
-                    self.scene.camera.pos.y,
-                    Message::CameraYUpdated
-                )
-                .width(300)
-            ),
-        ]
+        let y_controls = row![control(
+            "Y",
+            slider(
+                -50. ..=50.,
+                self.scene.camera.pos.y,
+                Message::CameraYUpdated
+            )
+            .width(300)
+        ),]
         .spacing(40);
 
-        let camera_controls = row![fov_controls, x_controls, y_controls]
-            .spacing(10);
+        let camera_controls = row![fov_controls, x_controls, y_controls].spacing(10);
         let controls = column![number_controls, camera_controls]
             .spacing(10)
             .padding(20)
             .align_items(Alignment::Center);
 
-        let shader =
-            shader(&self.scene).width(Length::Fill).height(Length::Fill);
+        let shader = shader(&self.scene).width(Length::Fill).height(Length::Fill);
 
         column![shader, controls]
-        .align_items(Alignment::Center)
-        .into()
+            .align_items(Alignment::Center)
+            .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(time::Duration::from_millis(16))
-            .map(Message::Tick)
+        Subscription::batch([
+            time::every(time::Duration::from_millis(16)).map(Message::Tick),
+            event::listen().map(Message::Event),
+        ])
     }
 
     fn theme(&self) -> Self::Theme {
@@ -159,12 +168,10 @@ enum Message {
     CameraFovChanged(f32),
     CameraXUpdated(f32),
     CameraYUpdated(f32),
+    Event(iced::Event),
     Tick(Instant),
 }
 
-fn control<'a>(
-    label: &str,
-    control: impl Into<Element<'a, Message>>,
-) -> Element<'a, Message> {
+fn control<'a>(label: &str, control: impl Into<Element<'a, Message>>) -> Element<'a, Message> {
     row![text(label), control.into()].spacing(10).into()
 }
