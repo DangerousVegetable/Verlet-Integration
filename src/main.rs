@@ -16,7 +16,7 @@ use iced::{event, keyboard, Application};
 use iced::{Alignment, Element, Length, Subscription};
 
 use glam::{vec2, Vec2};
-use smog::CustomApplication;
+use verlet_integration::CustomApplication;
 
 const SUB_TICKS: usize = 8;
 fn main() -> iced::Result {
@@ -44,7 +44,7 @@ impl Application for Simulation {
     type Flags = ();
 
     fn title(&self) -> String {
-        "SMOG".to_string()
+        "Verlet PhysX Engine".to_string()
     }
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {

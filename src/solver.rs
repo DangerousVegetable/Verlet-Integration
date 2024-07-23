@@ -9,7 +9,7 @@ use glam::{vec2, Vec2};
 use rand::Rng;
 use rayon::prelude::*;
 
-use smog::multithreaded::{self, UnsafeMultithreadedArray};
+use verlet_integration::multithreaded::{self, UnsafeMultithreadedArray};
 
 use crate::particle::{Particle, METAL, SAND};
 pub const MAX: u32 = 200000;

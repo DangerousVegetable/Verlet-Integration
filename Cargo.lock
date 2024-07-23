@@ -2781,36 +2781,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "smog"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "fs_extra",
- "futures",
- "glam 0.28.0",
- "iced",
- "iced_core",
- "iced_futures",
- "iced_graphics",
- "iced_highlighter",
- "iced_renderer",
- "iced_runtime",
- "iced_style",
- "iced_tiny_skia",
- "iced_wgpu",
- "iced_widget",
- "iced_winit",
- "image",
- "log",
- "rand",
- "rayon",
- "rustc-hash",
- "tokio",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "smol_str"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3304,6 +3274,36 @@ name = "valuable"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
+
+[[package]]
+name = "verlet_integration"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "fs_extra",
+ "futures",
+ "glam 0.28.0",
+ "iced",
+ "iced_core",
+ "iced_futures",
+ "iced_graphics",
+ "iced_highlighter",
+ "iced_renderer",
+ "iced_runtime",
+ "iced_style",
+ "iced_tiny_skia",
+ "iced_wgpu",
+ "iced_widget",
+ "iced_winit",
+ "image",
+ "log",
+ "rand",
+ "rayon",
+ "rustc-hash",
+ "tokio",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "version-compare"
