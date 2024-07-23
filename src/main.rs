@@ -80,7 +80,7 @@ impl Application for Simulation {
                 for _ in 0..SUB_TICKS {
                     self.scene.update(dt);
                 }
-                println!("{}", (Instant::now() - time).as_nanos() as f32 / 1000000.);
+                //println!("{}", (Instant::now() - time).as_nanos() as f32 / 1000000.);
             }
             Message::Event(event) => match event {
                 event::Event::Keyboard(keyboard::Event::KeyPressed {
